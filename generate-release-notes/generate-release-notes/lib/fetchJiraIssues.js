@@ -7,8 +7,15 @@ export default async function fetchReleaseNotes(version) {
     AND (labels not in (release-note, openjdk-na) OR labels is EMPTY)
     AND (summary !~ "release note") AND (issuetype != CSR) AND (fixVersion in (${version}))`;
   // execute the initial fetch to get the total number of issues
-  const totalQuery = await fetch(`${baseUrl + jql}&startAt=1&maxResults=1`);
-  const initialRes = await totalQuery.json();
+  const totalUrl = `${baseUrl + jql}&startAt=1&maxResults=1`;
+  const totalQuery = await fetch(totalUrl);
+  const totalQueryText = await totalQuery.text();
+  let initialRes;
+  try {
+    initialRes = JSON.parse(totalQueryText);
+  } catch (e) {
+    throw new Error(`Failed to parse response from URL: ${totalUrl}\n\nResponse body:\n${totalQueryText}`);
+  }
   const { total } = initialRes;
 
   const JIRA_ISSUES = [];
@@ -18,10 +25,12 @@ export default async function fetchReleaseNotes(version) {
     const url = `${baseUrl + jql}&startAt=${startAt}&maxResults=50`;
     const query = await fetch(url);
     const queryText = await query.text();
-    if (queryText.startsWith('<!DOCTYPE HTML')) {
-      throw new Error(`Unexpected HTML response from URL: ${url}\n\nResponse body:\n${queryText}`);
+    let pageRes;
+    try {
+      pageRes = JSON.parse(queryText);
+    } catch (e) {
+      throw new Error(`Failed to parse response from URL: ${url}\n\nResponse body:\n${queryText}`);
     }
-    const pageRes = JSON.parse(queryText);
 
     pageRes.issues.forEach((issue) => {
       let parent = '';
