@@ -16,7 +16,8 @@ export default async function fetchReleaseNotes(version) {
   // fetch all the issues by page
   for (let startAt = 0; startAt <= total + 50; startAt += 50) {
     const query = await fetch(`${baseUrl + jql}&startAt=${startAt}&maxResults=50`);
-    if (query.text().startsWith("<!DOCTYPE HTML")) {
+    const queryText = await query.text();
+    if (queryText.startsWith("<!DOCTYPE HTML")) {
       throw new Error(`ERROR: URL: ${baseUrl + jql}&startAt=${startAt}&maxResults=50 AND THEN: ${query.text()}`);
     }
     const pageRes = await query.json();
